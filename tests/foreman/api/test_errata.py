@@ -22,6 +22,7 @@ from robottelo.cli.factory import (
     setup_org_for_a_custom_repo,
     setup_org_for_a_rh_repo,
 )
+from robottelo.config import settings
 from robottelo.constants import (
     DEFAULT_ARCHITECTURE,
     DEFAULT_RELEASE_VERSION,
@@ -75,15 +76,26 @@ class ErrataTestCase(APITestCase):
             environment=cls.env,
             organization=cls.org,
         ).create()
-        setup_org_for_a_rh_repo({
-            'product': PRDS['rhel'],
-            'repository-set': REPOSET['rhst7'],
-            'repository': REPOS['rhst7']['name'],
-            'organization-id': cls.org.id,
-            'content-view-id': cls.content_view.id,
-            'lifecycle-environment-id': cls.env.id,
-            'activationkey-id': cls.activation_key.id,
-        })
+        if settings.cdn:
+            # Add subscription to Satellite Tools repo to activation key
+            setup_org_for_a_rh_repo({
+                'product': PRDS['rhel'],
+                'repository-set': REPOSET['rhst7'],
+                'repository': REPOS['rhst7']['name'],
+                'organization-id': cls.org.id,
+                'content-view-id': cls.content_view.id,
+                'lifecycle-environment-id': cls.env.id,
+                'activationkey-id': cls.activation_key.id,
+            })
+        else:
+            # Create custom internal Tools repo, add to activation key
+            setup_org_for_a_custom_repo({
+                u'url': settings.sattools_repo,
+                u'organization-id': cls.org.id,
+                u'content-view-id': cls.content_view.id,
+                u'lifecycle-environment-id': cls.env.id,
+                u'activationkey-id': cls.activation_key.id,
+            })
         cls.custom_entities = setup_org_for_a_custom_repo({
             'url': FAKE_6_YUM_REPO,
             'organization-id': cls.org.id,
@@ -192,7 +204,8 @@ class ErrataTestCase(APITestCase):
                 result = client.register_contenthost(
                     self.org.label, self.activation_key.name)
                 self.assertEqual(result.return_code, 0)
-                client.enable_repo(REPOS['rhst7']['id'])
+                if settings.cdn:
+                    client.enable_repo(REPOS['rhst7']['id'])
                 client.install_katello_agent()
             host_ids = [
                 entities.Host().search(query={
@@ -227,7 +240,8 @@ class ErrataTestCase(APITestCase):
             result = client.register_contenthost(
                 self.org.label, self.activation_key.name)
             self.assertEqual(result.return_code, 0)
-            client.enable_repo(REPOS['rhst7']['id'])
+            if settings.cdn:
+                client.enable_repo(REPOS['rhst7']['id'])
             client.install_katello_agent()
             host_id = entities.Host().search(query={
                     'search': 'name={0}'.format(client.hostname)})[0].id
