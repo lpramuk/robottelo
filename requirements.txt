@@ -2,6 +2,7 @@
 # Version updates managed by pyup.io
 
 attrdict==2.0.1
+betelgeuse==1.7.0
 broker==0.1.8
 cryptography==3.3.1
 deepdiff==5.2.2
