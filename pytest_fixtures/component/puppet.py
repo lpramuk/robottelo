@@ -5,8 +5,9 @@ from robottelo import constants
 
 
 @pytest.fixture(scope='session')
-def session_puppet_enabled_sat(session_satellite_host):
+def session_puppet_enabled_sat(session_target_sat):
     """Satellite with enabled puppet plugin"""
+    session_satellite_host = session_target_sat
     if session_satellite_host:
         yield session_satellite_host.enable_puppet_satellite()
     else:
